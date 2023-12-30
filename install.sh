@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#EricServic.es Mail Server Install
+#EricServic.es CDN Server Install
 
 ##### Variables ###############################
 # CERTBOT - Toggle for Installing Certbot
