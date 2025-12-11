@@ -56,7 +56,7 @@ echo -e "${GREEN}Turning on the Firewall${ENDCOLOR}"
 systemctl enable firewalld
 systemctl restart firewalld
 
-echo -e "${GREEN}Allow Ports for Email Server on Firewall\n${ENDCOLOR}"
+echo -e "${GREEN}Allow Ports for Web Server on Firewall\n${ENDCOLOR}"
 firewall-cmd --permanent --add-port={80/tcp,443/tcp}
 
 echo -e "${GREEN}Reload the firewall.\n${ENDCOLOR}"
