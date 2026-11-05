@@ -5,7 +5,15 @@ ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 source "$ROOT/lib/node.sh"
 ERICCDN_NGINX_BINARY=${ERICCDN_NGINX_BINARY:-nginx}
 TMP=$(mktemp -d)
-cleanup() { "$ERICCDN_NGINX_BINARY" -p "$TMP/" -c "$TMP/nginx.conf" -s quit >/dev/null 2>&1 || true; rm -rf -- "$TMP"; }
+cleanup() {
+    local result=$?
+    if ((result!=0)); then
+        printf 'nginx smoke test failed; recent nginx diagnostics:\n' >&2
+        [[ ! -f $TMP/logs/error.log ]] || tail -80 "$TMP/logs/error.log" >&2
+    fi
+    "$ERICCDN_NGINX_BINARY" -p "$TMP/" -c "$TMP/nginx.conf" -s quit >/dev/null 2>&1 || true
+    rm -rf -- "$TMP"
+}
 trap cleanup EXIT
 mkdir -p "$TMP/cache" "$TMP/logs"
 openssl req -x509 -newkey rsa:2048 -nodes -days 3 -subj '/CN=origin.example.test' \

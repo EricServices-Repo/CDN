@@ -34,4 +34,9 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+      - name: Prepare a dedicated nginx test host
+        run: |
+          mapfile -t packages < <(dpkg-query -W -f='${binary:Package} ${db:Status-Status}\n' 'nginx*' 2>/dev/null | awk '$2=="installed" {print $1}')
+          if ((${#packages[@]})); then sudo apt-get purge -y "${packages[@]}"; fi
+          if systemctl is-active --quiet apache2; then sudo systemctl stop apache2; fi
       - run: sudo ERICCDN_DISPOSABLE_HOST=yes bash tests/linux-integration.sh
