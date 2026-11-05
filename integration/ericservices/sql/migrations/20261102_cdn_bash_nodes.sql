@@ -1,0 +1,78 @@
+-- Additive integration; PHP 8.2+, MySQL 8/MariaDB 10.6+. Run once before enabling routes.
+CREATE TABLE IF NOT EXISTS cdn_bash_nodes (
+    id VARCHAR(64) PRIMARY KEY,
+    name VARCHAR(64) NOT NULL,
+    token_hash CHAR(64) NULL UNIQUE,
+    status ENUM('pending','approved','disabled','revoked') NOT NULL DEFAULT 'pending',
+    public_ipv4 VARCHAR(45) NOT NULL,
+    location VARCHAR(100) NOT NULL DEFAULT '',
+    revision BIGINT UNSIGNED NOT NULL DEFAULT 1,
+    last_seen_at DATETIME NULL,
+    report_json MEDIUMTEXT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS cdn_bash_enrollments (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    token_hash CHAR(64) NOT NULL UNIQUE,
+    expected_ipv4 VARCHAR(45) NOT NULL,
+    location VARCHAR(100) NOT NULL DEFAULT '',
+    expires_at DATETIME NOT NULL,
+    enrollment_id VARCHAR(64) NULL,
+    node_id VARCHAR(64) NULL,
+    created_by VARCHAR(100) NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS cdn_bash_zones (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(253) NOT NULL UNIQUE,
+    provider_zone_id CHAR(32) NOT NULL,
+    token_env VARCHAR(100) NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS cdn_bash_domains (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    cdn_uid INT UNSIGNED NOT NULL,
+    zone_id BIGINT UNSIGNED NOT NULL,
+    hostname VARCHAR(253) NOT NULL UNIQUE,
+    origin VARCHAR(253) NOT NULL,
+    cache_ttl INT UNSIGNED NOT NULL DEFAULT 3600,
+    cache_version BIGINT UNSIGNED NOT NULL DEFAULT 1,
+    managed_tls TINYINT(1) NOT NULL DEFAULT 1,
+    enabled TINYINT(1) NOT NULL DEFAULT 1,
+    dns_enabled TINYINT(1) NOT NULL DEFAULT 0,
+    dns_error VARCHAR(255) NULL,
+    FOREIGN KEY (zone_id) REFERENCES cdn_bash_zones(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS cdn_bash_assignments (
+    node_id VARCHAR(64) NOT NULL,
+    domain_id BIGINT UNSIGNED NOT NULL,
+    draining TINYINT(1) NOT NULL DEFAULT 0,
+    drain_until DATETIME NULL,
+    PRIMARY KEY (node_id,domain_id),
+    FOREIGN KEY (node_id) REFERENCES cdn_bash_nodes(id),
+    FOREIGN KEY (domain_id) REFERENCES cdn_bash_domains(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS cdn_bash_dns_records (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    zone_id BIGINT UNSIGNED NOT NULL,
+    provider_record_id CHAR(32) NOT NULL UNIQUE,
+    domain_id BIGINT UNSIGNED NULL,
+    node_id VARCHAR(64) NULL,
+    kind ENUM('A','TXT') NOT NULL,
+    name VARCHAR(253) NOT NULL,
+    content VARCHAR(255) NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (zone_id) REFERENCES cdn_bash_zones(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS cdn_bash_audit (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    actor VARCHAR(100) NOT NULL,
+    action VARCHAR(100) NOT NULL,
+    entity VARCHAR(255) NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS cdn_bash_rate_limits (
+    bucket CHAR(64) PRIMARY KEY,
+    window_start BIGINT UNSIGNED NOT NULL,
+    requests INT UNSIGNED NOT NULL DEFAULT 1
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
