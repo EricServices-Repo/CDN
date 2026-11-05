@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "revision": "delivery_test",
+  "domains": [{
+    "hostname": "cdn.example.test",
+    "origin": "origin.example.test",
+    "cache_ttl": 3600,
+    "cache_version": "v3",
+    "policy": {
+      "backup_origins": ["backup.example.test"],
+      "connect_timeout": 2,
+      "read_timeout": 10,
+      "serve_stale": true,
+      "query_string": "ignore",
+      "cors_origin": "https://app.example.test",
+      "download": "attachment",
+      "request_rate": 10,
+      "burst": 20,
+      "connections": 5,
+      "ip_allow": ["127.0.0.1/32", "2001:db8::/32"],
+      "ip_deny": ["192.0.2.0/24"],
+      "signing_key": "abcdefghijklmnopqrstuvwxyz1234567890",
+      "cache_rules": [
+        {"match": "prefix", "value": "/private/", "ttl": 0},
+        {"match": "extension", "value": "css", "ttl": 60}
+      ],
+      "redirects": [{"path": "/old", "target": "/new", "code": 308}],
+      "response_headers": [{"name": "X-Content-Type-Options", "value": "nosniff"}]
+    }
+  }]
+}

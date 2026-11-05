@@ -1,0 +1,42 @@
+name: CDN validation
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  bash:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y jq shellcheck openssl php-cli php-cgi php-mysql nginx ripgrep
+      - run: bash -n install.sh updater.sh lib/*.sh tests/*.sh integration/*.sh
+      - run: shellcheck -S warning -e SC1091,SC2034,SC2317 install.sh updater.sh lib/*.sh tests/*.sh integration/*.sh
+      - run: bash tests/validation.sh && bash tests/runtime.sh && bash tests/certificates.sh && bash tests/delivery.sh && bash tests/traffic.sh && php tests/delivery.php && php tests/admin-validation.php && bash tests/website-overlay.sh && bash tests/nginx-smoke.sh
+      - run: find integration -name '*.php' -exec php -l {} \;
+  mysql:
+    runs-on: ubuntu-24.04
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: test-only-password
+          MYSQL_DATABASE: cdn_test
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -ptest-only-password"
+          --health-interval=10s --health-timeout=5s --health-retries=10
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y php-cli php-mysql
+      - run: php tests/admin-database.php
+        env:
+          TEST_DB_PASSWORD: test-only-password
+  linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare a dedicated nginx test host
+        run: |
+          mapfile -t packages < <(dpkg-query -W -f='${binary:Package} ${db:Status-Status}\n' 'nginx*' 2>/dev/null | awk '$2=="installed" {print $1}')
+          if ((${#packages[@]})); then sudo apt-get purge -y "${packages[@]}"; fi
+          if systemctl is-active --quiet apache2; then sudo systemctl stop apache2; fi
+      - run: sudo ERICCDN_DISPOSABLE_HOST=yes bash tests/linux-integration.sh
