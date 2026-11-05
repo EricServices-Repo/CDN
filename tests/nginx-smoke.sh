@@ -51,7 +51,8 @@ error_log $TMP/logs/error.log;
 events { worker_connections 128; }
 http {
     access_log off;
-    proxy_cache_path $TMP/cache keys_zone=ericcdn:1m max_size=10m;
+    proxy_temp_path $TMP/proxy-temp;
+    proxy_cache_path $TMP/cache keys_zone=ericcdn:1m max_size=10m use_temp_path=off;
     include $TMP/domains.conf;
     include $TMP/origin.conf;
     include $TMP/backup.conf;
